@@ -10,6 +10,14 @@ app.use(express.json({ limit: "15mb" })); // photos arrive as base64 — bump th
 app.use("/api", require("./routes/trips"));
 app.use("/api", require("./routes/chargers"));
 
+app.get("/", (req, res) => {
+  res.json({
+    service: "UKLabs EV Trip Log API",
+    status: "running",
+    try: ["/api/health", "/api/chargers"],
+  });
+});
+
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
 const PORT = process.env.PORT || 3000;
