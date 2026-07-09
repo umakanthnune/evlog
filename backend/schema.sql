@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS trip_stops (
   charger_id UUID NOT NULL REFERENCES chargers(id),
   charger_name TEXT NOT NULL,
   kwh NUMERIC DEFAULT 0,
-  cost NUMERIC DEFAULT 0,
+  rate_per_kwh NUMERIC DEFAULT 0,  -- ₹ per kWh, as entered by the driver
+  cost NUMERIC DEFAULT 0,          -- computed: kwh * rate_per_kwh (server-side, not trusted from client)
   wait_min NUMERIC DEFAULT 0,
   rating SMALLINT DEFAULT 5 CHECK (rating BETWEEN 1 AND 5),
   notes TEXT,
@@ -43,6 +44,9 @@ CREATE TABLE IF NOT EXISTS trip_stops (
 );
 CREATE INDEX IF NOT EXISTS trip_stops_trip_idx ON trip_stops(trip_id);
 CREATE INDEX IF NOT EXISTS trip_stops_charger_idx ON trip_stops(charger_id);
+
+-- Safe to re-run: adds the column if this table already existed before this change.
+ALTER TABLE trip_stops ADD COLUMN IF NOT EXISTS rate_per_kwh NUMERIC DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS trip_expenses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

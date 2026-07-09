@@ -50,7 +50,7 @@ router.get("/chargers/:id", async (req, res) => {
     [charger.id]
   );
   const reviewsResult = await db.query(
-    `SELECT trip_title, rating, wait_min, notes, kwh, cost, created_at
+    `SELECT trip_title, rating, wait_min, notes, kwh, rate_per_kwh, cost, created_at
      FROM trip_stops WHERE charger_id = $1 ORDER BY created_at DESC`,
     [charger.id]
   );
