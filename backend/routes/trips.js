@@ -31,12 +31,15 @@ router.get("/trips", requireDevice, async (req, res) => {
 
 /** POST /api/trips — create a trip */
 router.post("/trips", requireDevice, async (req, res) => {
-  const { title, startDate, endDate, distanceKm } = req.body;
+  const { title, startDate, endDate, distanceKm, vehicleModel, batteryKwh } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: "Title is required" });
   const { rows } = await db.query(
-    `INSERT INTO trips (device_id, title, start_date, end_date, distance_km)
-     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [req.deviceId, title.trim(), startDate || null, endDate || null, distanceKm || 0]
+    `INSERT INTO trips (device_id, title, start_date, end_date, distance_km, vehicle_model, battery_kwh)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [
+      req.deviceId, title.trim(), startDate || null, endDate || null, distanceKm || 0,
+      (vehicleModel || "").trim() || null, batteryKwh || null,
+    ]
   );
   res.status(201).json(rows[0]);
 });
@@ -78,7 +81,7 @@ router.post("/trips/:id/stops", requireDevice, async (req, res) => {
   const trip = await fetchTripOr404(req, res);
   if (!trip) return;
 
-  const { chargerName, network, kwh, ratePerKwh, waitMin, rating, notes, photos } = req.body;
+  const { chargerName, network, chargeType, kwh, ratePerKwh, waitMin, rating, notes, photos } = req.body;
   if (!chargerName || !chargerName.trim()) {
     return res.status(400).json({ error: "Charger name is required" });
   }
@@ -88,13 +91,14 @@ router.post("/trips/:id/stops", requireDevice, async (req, res) => {
   const kwhNum = Number(kwh || 0);
   const rateNum = Number(ratePerKwh || 0);
   const cost = kwhNum * rateNum; // computed here, never trusted directly from the client
+  const chargeTypeVal = chargeType === "DC" ? "DC" : chargeType === "AC" ? "AC" : null;
 
   const { rows } = await db.query(
     `INSERT INTO trip_stops
-      (trip_id, charger_id, charger_name, kwh, rate_per_kwh, cost, wait_min, rating, notes, photos, trip_title)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+      (trip_id, charger_id, charger_name, charge_type, kwh, rate_per_kwh, cost, wait_min, rating, notes, photos, trip_title)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
     [
-      trip.id, charger.id, charger.name,
+      trip.id, charger.id, charger.name, chargeTypeVal,
       kwhNum, rateNum, cost, waitMin || 0, rating || 5,
       (notes || "").trim(), JSON.stringify(photos || []), trip.title,
     ]
